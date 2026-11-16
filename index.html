@@ -1,0 +1,1193 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>리뷰 라이터</title>
+<meta name="description" content="실제로 겪은 일만 적으면 플랫폼별 리뷰로 바꿔주는 개인용 웹앱">
+<meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e1014" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="리뷰 라이터">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#f5f6f8; --bg-elev:#ffffff; --bg-soft:#eef0f4; --glass:rgba(245,246,248,.86);
+  --text:#14161a; --text-dim:#6b7280; --line:#e2e5eb;
+  --accent:#4f46e5; --accent-ink:#ffffff; --accent-soft:#ecebfd;
+  --good:#0b8a4b; --ok:#a16207; --bad:#c0332b;
+  --radius:18px;
+  --shadow:0 1px 2px rgba(16,24,40,.05), 0 8px 22px rgba(16,24,40,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0e1014; --bg-elev:#171a20; --bg-soft:#1f242c; --glass:rgba(14,16,20,.84);
+    --text:#eceef2; --text-dim:#98a1b0; --line:#262b34;
+    --accent:#8b87ff; --accent-ink:#141428; --accent-soft:#24233c;
+    --good:#4ade80; --ok:#fbbf24; --bad:#f87171;
+    --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 26px rgba(0,0,0,.32);
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",system-ui,sans-serif;
+  font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(28px + env(safe-area-inset-bottom));
+}
+button,input,textarea,select{font:inherit;color:inherit}
+a{color:var(--accent)}
+
+.topbar{position:sticky;top:0;z-index:20;background:var(--glass);backdrop-filter:saturate(1.5) blur(14px);-webkit-backdrop-filter:saturate(1.5) blur(14px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
+.topbar-in{max-width:600px;margin:0 auto;height:58px;padding:0 14px;display:flex;align-items:center;gap:10px}
+.brand{flex:1;min-width:0}
+.brand b{display:block;font-size:17px;font-weight:800;letter-spacing:-.02em}
+.brand span{display:block;font-size:11.5px;color:var(--text-dim);font-weight:600;letter-spacing:.01em}
+.ibtn{width:42px;height:42px;flex:0 0 auto;border-radius:13px;border:1px solid var(--line);background:var(--bg-elev);display:grid;place-items:center;font-size:17px;line-height:1;box-shadow:var(--shadow)}
+.ibtn:active{transform:scale(.96)}
+
+.wrap{max-width:600px;margin:0 auto;padding:0 14px}
+.card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-top:12px}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.card-head h2{margin:0;font-size:14px;font-weight:800;letter-spacing:.01em;display:flex;align-items:center;gap:7px}
+.num{width:20px;height:20px;border-radius:7px;background:var(--accent-soft);color:var(--accent);font-size:11.5px;font-weight:800;display:grid;place-items:center;flex:0 0 auto}
+.hint{font-size:12px;color:var(--text-dim);margin:0}
+
+.group-label{font-size:11.5px;font-weight:800;color:var(--text-dim);letter-spacing:.04em;margin:0 0 8px}
+.group-label + .chips{margin-bottom:14px}
+.group-label:last-of-type{margin-bottom:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:10px 13px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg-soft);font-size:14px;font-weight:700;color:var(--text);transition:background .15s,border-color .15s,transform .1s}
+.chip:active{transform:scale(.97)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+.verdicts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.verdict{padding:14px 4px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg-elev);font-size:14.5px;font-weight:800;color:var(--text)}
+.verdict:active{transform:scale(.97)}
+.verdict[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+
+.field{margin-top:12px}
+.field:first-child{margin-top:0}
+.field > label{display:block;font-size:12.5px;font-weight:800;color:var(--text-dim);margin-bottom:7px}
+input[type=text],input[type=password],input[type=number],textarea,select{
+  width:100%;background:var(--bg-soft);border:1.5px solid transparent;border-radius:14px;
+  padding:13px 14px;outline:none;font-size:16px;color:var(--text);appearance:none;-webkit-appearance:none;
+  text-overflow:ellipsis;
+}
+.select-wrap{position:relative}
+.select-wrap select{padding-right:40px}
+.select-wrap:after{content:"";position:absolute;right:16px;top:calc(50% - 5px);width:8px;height:8px;border-right:2px solid var(--text-dim);border-bottom:2px solid var(--text-dim);transform:rotate(45deg);pointer-events:none;opacity:.8}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);background:var(--bg-elev)}
+textarea{min-height:108px;resize:vertical;line-height:1.6}
+select{background-image:none}
+input::placeholder,textarea::placeholder{color:var(--text-dim);opacity:.75}
+
+details.more{margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
+details.more summary{font-size:13px;font-weight:700;color:var(--text-dim);cursor:pointer;list-style:none}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary:before{content:"+ ";font-weight:800}
+
+.btn-primary{width:100%;padding:17px;border:0;border-radius:16px;background:var(--accent);color:#fff;font-size:17px;font-weight:800;letter-spacing:-.01em;margin-top:14px;box-shadow:0 10px 22px rgba(79,70,229,.26)}
+.btn-primary:active{transform:scale(.99)}
+.btn-primary:disabled{opacity:.5;box-shadow:none}
+.btn-ghost{width:100%;padding:14px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg-elev);font-size:15px;font-weight:700}
+.btn-ghost:active{background:var(--bg-soft)}
+.btn-danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--line))}
+
+.status-line{margin-top:12px;display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--text-dim);font-weight:600}
+.spinner{width:16px;height:16px;border-radius:50%;border:2.2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite;flex:0 0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err{margin-top:12px;padding:13px 14px;border-radius:14px;background:color-mix(in srgb,var(--bad) 10%,var(--bg-elev));border:1px solid color-mix(in srgb,var(--bad) 30%,var(--line));color:var(--text);font-size:13.5px;line-height:1.55;white-space:pre-wrap}
+
+.result-head{display:flex;align-items:center;gap:9px;margin:20px 4px 2px}
+.result-head h3{margin:0;font-size:15px;font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.result-head .dim{font-size:12px;color:var(--text-dim);font-weight:600}
+
+.rcard{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-top:10px}
+.rc-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.rc-name{font-size:13px;font-weight:800;letter-spacing:.01em;padding:4px 9px;border-radius:8px;background:var(--accent-soft);color:var(--accent)}
+.rc-rating{font-size:12.5px;font-weight:800;color:var(--text-dim)}
+.rc-headline{font-weight:800;font-size:15.5px;margin:0 0 8px;line-height:1.4}
+.rc-body{margin:0;font-size:15px;line-height:1.72;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere}
+.rc-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tag{font-size:12px;font-weight:700;color:var(--text-dim);background:var(--bg-soft);border-radius:999px;padding:4px 9px}
+.rc-tip{margin:10px 0 0;font-size:12.5px;color:var(--text-dim);line-height:1.5;border-top:1px dashed var(--line);padding-top:10px}
+.rc-tip b{color:var(--text);font-weight:800}
+.rc-actions{display:flex;gap:8px;margin-top:14px}
+.rc-actions button{flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg-elev);font-size:14px;font-weight:800}
+.rc-actions button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.rc-actions button:active{transform:scale(.98)}
+
+.list{display:flex;flex-direction:column;gap:8px}
+.row{display:flex;align-items:center;gap:10px;padding:12px 13px;border-radius:14px;background:var(--bg-soft);border:1px solid transparent}
+.row-main{flex:1;min-width:0}
+.row-title{font-size:14.5px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row-sub{font-size:12px;color:var(--text-dim);font-weight:600}
+.row-del{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--bg-elev);color:var(--bad);font-size:15px;font-weight:800;flex:0 0 auto}
+.empty{padding:26px 10px;text-align:center;color:var(--text-dim);font-size:13.5px;line-height:1.6}
+
+.sheet-backdrop{position:fixed;inset:0;background:rgba(8,10,14,.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
+.sheet-backdrop.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--bg-elev);border-radius:24px 24px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.28);transform:translateY(101%);transition:transform .28s cubic-bezier(.22,.8,.24,1);max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sheet.open{transform:translateY(0)}
+.sheet-in{max-width:600px;margin:0 auto;padding:18px 16px calc(22px + env(safe-area-inset-bottom))}
+.sheet-grab{width:38px;height:4px;border-radius:999px;background:var(--line);margin:0 auto 14px}
+.sheet h2{margin:0 0 4px;font-size:18px;font-weight:800;letter-spacing:-.02em}
+.sheet p.lead{margin:0 0 16px;font-size:13px;color:var(--text-dim);line-height:1.55}
+.sheet-actions{display:flex;gap:8px;margin-top:18px}
+.sheet-actions button{flex:1}
+
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kv .field{margin-top:0}
+.kv label{font-size:11.5px;margin-bottom:5px}
+.kv input{padding:11px 12px}
+.key-row{position:relative}
+.key-row input{padding-right:62px}
+.key-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);height:38px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg-elev);font-size:12.5px;font-weight:800;color:var(--text-dim)}
+
+.toast{position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom));transform:translate(-50%,16px);background:#14161a;color:#fff;padding:12px 18px;border-radius:999px;font-size:13.5px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:60;max-width:86vw;text-align:center}
+@media (prefers-color-scheme: dark){.toast{background:#eceef2;color:#14161a}}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.foot{text-align:center;font-size:11.5px;color:var(--text-dim);margin-top:22px;line-height:1.7}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>리뷰 라이터</b><span>겪은 일만 적으면 플랫폼별 리뷰로</span></div>
+    <button class="ibtn" id="btnHistory" aria-label="작성 내역">🗂</button>
+    <button class="ibtn" id="btnSettings" aria-label="설정">⚙️</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="setupBanner"></div>
+
+  <section class="card">
+    <div class="card-head">
+      <h2><span class="num">1</span> 어디에 올릴까</h2>
+      <span class="hint" id="pickCount">0개 선택</span>
+    </div>
+    <p class="group-label">식당 · 장소</p>
+    <div class="chips" id="platformsFood"></div>
+    <p class="group-label">뷰티 · 패션</p>
+    <div class="chips" id="platformsBeauty"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2><span class="num">2</span> 뭘 리뷰하나</h2>
+    </div>
+    <div class="field">
+      <label for="nameInput">가게 이름 / 제품명</label>
+      <input type="text" id="nameInput" placeholder="예: 성수동 OO국밥 / 라운드랩 자작나무 수분크림" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>솔직 평가</label>
+      <div class="verdicts" id="verdicts">
+        <button class="verdict" data-verdict="good" aria-pressed="false">👍 추천</button>
+        <button class="verdict" data-verdict="ok" aria-pressed="false">😐 무난</button>
+        <button class="verdict" data-verdict="bad" aria-pressed="false">👎 비추</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="memoInput">실제로 겪은 일 · 메모</label>
+      <textarea id="memoInput" placeholder="예: 점심에 갔는데 웨이팅 20분. 국밥 9,000원. 국물 진하고 고기 넉넉한데 김치가 좀 시큼했음. 사장님은 무뚝뚝한 편."></textarea>
+      <p class="hint" style="margin-top:7px">여기 적은 것만 재료로 씁니다. 없는 건 안 지어내요.</p>
+    </div>
+    <details class="more">
+      <summary>추가 정보 (선택)</summary>
+      <div class="field">
+        <label for="extraInput">가격대 · 웨이팅 · 사이즈 · 피부타입 등</label>
+        <input type="text" id="extraInput" placeholder="예: 2인 23,000원 / L 샀는데 어깨 넉넉 / 수부지" autocomplete="off">
+      </div>
+    </details>
+  </section>
+
+  <button class="btn-primary" id="btnGenerate">리뷰 만들기</button>
+  <div id="statusArea"></div>
+
+  <div id="results"></div>
+
+  <p class="foot">키와 내역은 이 브라우저에만 저장됩니다.<br>공용 기기에서는 쓰지 마세요.</p>
+</main>
+
+<div class="sheet-backdrop" id="backdrop"></div>
+
+<section class="sheet" id="sheetSettings" aria-hidden="true">
+  <div class="sheet-in">
+    <div class="sheet-grab"></div>
+    <h2>설정</h2>
+    <p class="lead">Gemini API 키를 한 번 넣어두면 계속 씁니다. 무료로 발급됩니다.</p>
+
+    <div class="field">
+      <label for="keyInput">Gemini API 키</label>
+      <div class="key-row">
+        <input type="password" id="keyInput" placeholder="AIza..." autocomplete="off" spellcheck="false">
+        <button class="key-eye" id="keyEye" type="button">보기</button>
+      </div>
+      <p class="hint" style="margin-top:8px">
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> → 구글 로그인 → <b>API 키 만들기</b> → 복사해서 붙여넣기 (1분)
+      </p>
+    </div>
+
+    <div class="field">
+      <label for="modelSelect">모델</label>
+      <div class="select-wrap"><select id="modelSelect"></select></div>
+    </div>
+
+    <div class="field">
+      <label>내 스펙 (무신사 사이즈감에 반영)</label>
+      <div class="kv">
+        <div class="field"><label for="pfHeight">키 (cm)</label><input type="text" id="pfHeight" placeholder="174" inputmode="numeric"></div>
+        <div class="field"><label for="pfWeight">몸무게 (kg)</label><input type="text" id="pfWeight" placeholder="90" inputmode="numeric"></div>
+        <div class="field"><label for="pfTop">평소 상의</label><input type="text" id="pfTop" placeholder="XL~2XL"></div>
+        <div class="field"><label for="pfBottom">평소 하의</label><input type="text" id="pfBottom" placeholder="34~36"></div>
+      </div>
+    </div>
+
+    <div class="sheet-actions">
+      <button class="btn-ghost" id="btnCloseSettings">닫기</button>
+      <button class="btn-primary" id="btnSaveSettings" style="margin-top:0">저장</button>
+    </div>
+    <div class="sheet-actions" style="margin-top:10px">
+      <button class="btn-ghost" id="btnInstall" style="display:none">홈 화면에 추가</button>
+    </div>
+  </div>
+</section>
+
+<section class="sheet" id="sheetHistory" aria-hidden="true">
+  <div class="sheet-in">
+    <div class="sheet-grab"></div>
+    <h2>작성 내역</h2>
+    <p class="lead">최근 100개까지 이 브라우저에 저장됩니다.</p>
+    <div id="historyList" class="list"></div>
+    <div class="sheet-actions">
+      <button class="btn-ghost" id="btnCloseHistory">닫기</button>
+      <button class="btn-ghost btn-danger" id="btnClearHistory">전체 삭제</button>
+    </div>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ------------------------------------------------------------------ */
+  /* 저장소                                                              */
+  /* ------------------------------------------------------------------ */
+  var LS = {
+    key: 'rw.apiKey',
+    model: 'rw.model',
+    profile: 'rw.profile',
+    history: 'rw.history',
+    seen: 'rw.seen'
+  };
+
+  // 개인 스펙 기본값: 설정 화면에서 언제든 바꿀 수 있음.
+  var DEFAULT_PROFILE = { height: '174', weight: '90', top: 'XL~2XL', bottom: '34~36' };
+
+  var MODELS = [
+    { id: 'gemini-3.5-flash', label: 'gemini-3.5-flash (기본·추천)' },
+    { id: 'gemini-3.8-flash', label: 'gemini-3.8-flash (최신·품질 우선)' },
+    { id: 'gemini-3.5-flash-lite', label: 'gemini-3.5-flash-lite (빠름)' }
+  ];
+
+  var PLATFORMS = [
+    { id: 'kakao', name: '카카오맵', group: 'food' },
+    { id: 'naver', name: '네이버지도', group: 'food' },
+    { id: 'google', name: '구글맵', group: 'food' },
+    { id: 'diningcode', name: '다이닝코드', group: 'food' },
+    { id: 'glowpick', name: '글로우픽', group: 'beauty' },
+    { id: 'hwahae', name: '화해', group: 'beauty' },
+    { id: 'musinsa', name: '무신사', group: 'beauty' },
+    { id: 'oliveyoung', name: '올리브영', group: 'beauty' }
+  ];
+
+  var VERDICTS = {
+    good: '좋았음 (추천)',
+    ok: '무난했음',
+    bad: '별로였음 (비추)'
+  };
+
+  var store = {
+    get: function (k, d) {
+      try {
+        var v = localStorage.getItem(k);
+        if (v === null) return d;
+        return JSON.parse(v);
+      } catch (e) { return d; }
+    },
+    set: function (k, v) {
+      try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {}
+    },
+    del: function (k) {
+      try { localStorage.removeItem(k); } catch (e) {}
+    }
+  };
+
+  function $(id) { return document.getElementById(id); }
+
+  var state = {
+    selected: [],
+    verdict: null,
+    busy: false,
+    result: null,     // { name, verdict, memo, extra, platforms, reviews, ts, model }
+    ticker: null,
+    installPrompt: null
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* 프롬프트                                                            */
+  /* ------------------------------------------------------------------ */
+  var SYSTEM_HEAD = [
+    '너는 20대 후반 남성 실사용자를 대신해, 그가 실제로 겪은 일을 각 리뷰 플랫폼 양식에 맞춰 옮겨 쓰는 한국어 리뷰 작성 도우미다.',
+    '',
+    '[절대 원칙]',
+    '- 사용자가 준 메모에 있는 사실만 쓴다. 메모에 없는 메뉴, 가격, 대기시간, 직원 태도, 분위기, 성분, 배송일 등을 지어내지 않는다.',
+    '- 재료가 부족하면 상상으로 채우지 말고 길이를 줄인다. 다만 문장은 자연스럽게 완성한다.',
+    '- 확인할 수 없는 추측(위생 상태, 사장님 개인사, 타 업체 비교 비하)과 욕설, 인신공격은 쓰지 않는다. 실제 겪은 일은 담백하게 사실로 쓴다.',
+    '- 어디에나 붙는 상투적 문장 금지: "정말 최고였어요", "또 방문할게요~", "강력 추천합니다", "인생템", "꼭 사세요" 같은 것.',
+    '- 이모지·감탄사 남발 금지. 과장된 미사여구 금지(예: "입안에서 살살 녹는 환상적인 맛").',
+    '- 플랫폼마다 문장을 새로 쓴다. 한 플랫폼 문장을 다른 플랫폼에 복사하지 않는다. 같은 내용이라도 표현과 구성을 다르게.',
+    '',
+    '[말투]',
+    '- 20대 후반 남성, 담백한 직구체. "~함", "~음", "~임", "~더라", "~네요", "~듯", "~같음"을 자연스럽게 섞는다.',
+    '- 문장은 짧게 끊고, 겪은 디테일(무엇을, 얼마에, 얼마나 기다려서, 언제)을 넣어 실제 사람이 쓴 느낌을 낸다.',
+    '- 예의는 지키되 과하게 공손한 "~해주셨어요", "~하답니다", "도움이 되셨으면" 같은 말은 쓰지 않는다.',
+    '- 리뷰 첫 문장에 결론이나 핵심 인상을 바로 놓는다.',
+    '',
+    '[평가별 태도]',
+    '- 좋았음(추천): 좋았던 이유를 구체적으로. 단점 하나 정도는 담백하게 짚어 광고처럼 보이지 않게.',
+    '- 무난했음: 좋았던 점과 아쉬웠던 점을 비슷한 분량으로. 억지 감동 없이.',
+    '- 별로였음(비추): 억지 칭찬 없이 단점과 그 이유를 분명히. 감정적 비난 대신 "그래서 다시 갈지는 모르겠다" 정도의 담백한 마무리.'
+  ].join('\n');
+
+  var PLATFORM_SPECS = {
+    kakao: [
+      '[카카오맵] 장소 리뷰',
+      '- 카카오맵은 가장 솔직하고 냉정한 톤. 짧고 팩트 위주.',
+      '- 본문 2~4문장, 80~250자. 무엇을 먹었/샀는지, 가격, 맛·서비스 인상, 재방문 여부.',
+      '- 별점은 5점 만점 정수(1~5).',
+      '- tags: 카카오맵 리뷰 태그로 붙일 만한 키워드 2~4개를 쉼표로 (예: "웨이팅있음, 가성비좋음, 혼밥하기좋음").'
+    ].join('\n'),
+    naver: [
+      '[네이버지도] 플레이스 리뷰',
+      '- 네이버는 경험·사실 중심의 담백한 톤. 영수증 인증·게시중단 신고를 피하려면 "내가 겪은 사실"만 쓴다.',
+      '- 본문 250~450자(500자 제한). 방문 목적/시간대, 주문한 것과 가격, 맛·양, 응대, 재방문 의사.',
+      '- 단정적 비방("불친절한 가게", "위생 엉망") 대신 겪은 사실("주문 후 30분 넘게 기다렸음", "물은 셀프였음")으로 쓴다.',
+      '- 별점은 5점 만점 정수.'
+    ].join('\n'),
+    google: [
+      '[구글맵] 리뷰',
+      '- 첫 문장에 결론(추천/비추)을 바로. 직관적인 핵심 요약 위주.',
+      '- 본문 3~5문장, 150~300자. 번역투 금지, 한국어로.',
+      '- 별점은 5점 만점 정수.'
+    ].join('\n'),
+    diningcode: [
+      '[다이닝코드] 맛집 리뷰',
+      '- 맛 · 가격 · 서비스 세 축으로 평가. 담백한 존댓말체("~네요", "~더라고요", "~같습니다") 위주.',
+      '- 본문 250~450자. 가성비, 웨이팅, 재방문 의사 중 해당하는 것을 자연스럽게 포함.',
+      '- 별점은 5점 만점, 0.5 단위 가능.'
+    ].join('\n'),
+    glowpick: [
+      '[글로우픽] 화장품 리뷰',
+      '- 아래 4줄 구조를 그대로 지켜 body를 쓴다(각 줄 머리말 포함).',
+      '좋았던 점: (2~3문장)',
+      '아쉬웠던 점: (1~2문장. 없으면 억지로 만들지 말고 "딱히 없었음" + 짧은 이유)',
+      '추천 피부타입: (건성/지성/수부지/민감성 등)',
+      '재구매 의사: (있음/없음 + 한 줄 이유)',
+      '- 사용감(발림성, 흡수, 끈적임, 향, 지속력, 메이크업 밀림)을 구체적으로. 성분 효능을 단정하지 않는다.',
+      '- 별점은 5점 만점, 0.5 단위.'
+    ].join('\n'),
+    hwahae: [
+      '[화해] 제품 리뷰',
+      '- 아래 4줄 구조를 그대로 지켜 body를 쓴다(각 줄 머리말 포함).',
+      '좋았던 점: (2~3문장)',
+      '아쉬웠던 점: (1~2문장)',
+      '이런 피부에 추천: (피부타입·고민)',
+      '재구매 의사: (있음/없음 + 한 줄 이유)',
+      '- 짧은 문장 위주, 사용감 중심. 향·발림성·흡수·지속력 중 겪은 것만.',
+      '- 별점은 5점 만점, 0.5 단위.'
+    ].join('\n'),
+    musinsa: [
+      '[무신사] 구매평',
+      '- headline: 한줄평 10~25자(예: "어깨 넉넉하고 무난한 데일리 후드").',
+      '- body: 250~400자. 사이즈/핏/소재/색감/마감/배송 중 겪은 항목 위주.',
+      '- 사용자 체형 정보가 주어지면 그 기준으로 사이즈감을 말한다(예: "평소 XL 입는데 이건 어깨가 조금 남음").',
+      '- 과한 칭찬 금지. 교환·반품·배송 경험도 담백하게. 단점은 하나 이상 자연스럽게.',
+      '- 별점은 5점 만점 정수.'
+    ].join('\n'),
+    oliveyoung: [
+      '[올리브영] 텍스트 후기',
+      '- 본문 200~400자. 사용감과 효과 중심, 짧은 문장. 과장·체험단 티 금지.',
+      '- 사진 후기 전제로, tips에 "사진에 뭘 담으면 좋을지" 한 줄을 적는다.',
+      '- 별점은 5점 만점 정수.'
+    ].join('\n')
+  };
+
+  var SCHEMA = {
+    type: 'object',
+    properties: {
+      reviews: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            platform: { type: 'string' },
+            headline: { type: 'string' },
+            body: { type: 'string' },
+            rating: { type: 'string' },
+            tags: { type: 'string' },
+            tips: { type: 'string' }
+          },
+          required: ['platform', 'body']
+        }
+      }
+    },
+    required: ['reviews']
+  };
+
+  function platformName(id) {
+    for (var i = 0; i < PLATFORMS.length; i++) {
+      if (PLATFORMS[i].id === id) return PLATFORMS[i].name;
+    }
+    return id;
+  }
+
+  function buildSystemPrompt(platformIds) {
+    var parts = [SYSTEM_HEAD, ''];
+    parts.push('[이번에 쓸 플랫폼별 양식]');
+    platformIds.forEach(function (id) {
+      if (PLATFORM_SPECS[id]) parts.push('', PLATFORM_SPECS[id]);
+    });
+    parts.push('');
+    parts.push('[출력 형식]');
+    parts.push('JSON 객체 하나만 출력한다. reviews 배열에 요청한 플랫폼 순서대로 항목을 넣고, platform 값은 요청한 id를 그대로 쓴다.');
+    parts.push('각 항목: platform(필수), body(필수, 플랫폼 양식에 맞춘 최종 문장), headline(한줄평이 필요한 플랫폼만), rating("4/5" 형식), tags(카카오맵만), tips(업로드 팁 한 줄: 어느 칸에 뭘 넣을지, 사진 팁 등).');
+    parts.push('tips는 한국어 문장으로 쓴다. "headline", "body" 같은 영어 필드명을 쓰지 말고 실제 칸 이름(예: "구매평 한줄평 칸", "본문")으로 설명한다.');
+    parts.push('"여기에 리뷰를 입력하세요" 같은 안내문이나 메타 설명은 넣지 않는다. body는 그대로 복사해 붙여넣을 수 있는 완성 문장이어야 한다.');
+    return parts.join('\n');
+  }
+
+  function buildUserPrompt(data) {
+    var lines = [];
+    lines.push('[리뷰 대상] ' + data.name);
+    lines.push('[내 평가] ' + (VERDICTS[data.verdict] || data.verdict));
+    lines.push('[실제로 겪은 일] ' + (data.memo || '(메모 없음 — 길게 쓰지 말고 짧게)'));
+    if (data.extra) lines.push('[추가 정보] ' + data.extra);
+
+    var p = store.get(LS.profile, DEFAULT_PROFILE) || {};
+    if (data.platforms.indexOf('musinsa') !== -1 && (p.height || p.weight || p.top || p.bottom)) {
+      var bits = [];
+      if (p.height) bits.push('키 ' + p.height + 'cm');
+      if (p.weight) bits.push('몸무게 ' + p.weight + 'kg');
+      if (p.top) bits.push('평소 상의 ' + p.top);
+      if (p.bottom) bits.push('평소 하의 ' + p.bottom);
+      lines.push('[내 체형] ' + bits.join(', ') + ' (무신사 사이즈감 판단 기준)');
+    }
+
+    lines.push('');
+    lines.push('[작성할 플랫폼] ' + data.platforms.map(platformName).join(', '));
+    lines.push('platform 값: ' + data.platforms.join(', '));
+    lines.push('');
+    lines.push('위 재료만으로 플랫폼마다 새로 써서 JSON으로 줘.');
+    return lines.join('\n');
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Gemini 호출                                                         */
+  /* ------------------------------------------------------------------ */
+  function apiUrl(model) {
+    return 'https://generativelanguage.googleapis.com/v1beta/models/' +
+      encodeURIComponent(model) + ':generateContent?key=' +
+      encodeURIComponent(store.get(LS.key, ''));
+  }
+
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  // Gemini 3.x(이상)는 thinkingLevel, 2.5 이하는 thinkingBudget + temperature를 쓴다.
+  var NEW_GEN_RE = /^gemini-([3-9]|[1-9][0-9])/;
+
+  function buildBody(model, systemPrompt, userPrompt, opts) {
+    var isNew = NEW_GEN_RE.test(model);
+    var gen = {
+      maxOutputTokens: isNew ? 16384 : 8192,
+      responseMimeType: 'application/json',
+      responseSchema: SCHEMA
+    };
+    if (isNew) {
+      gen.thinkingConfig = { thinkingLevel: opts.thinkingLevel || 'medium' };
+    } else {
+      gen.temperature = opts.temperature || 0.95;
+      gen.topP = 0.95;
+      if (model.indexOf('2.5') !== -1) gen.thinkingConfig = { thinkingBudget: 0 };
+    }
+    return {
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      generationConfig: gen
+    };
+  }
+
+  async function postGenerate(model, body) {
+    var res = await fetch(apiUrl(model), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    var raw = '';
+    try { raw = await res.text(); } catch (e) { raw = ''; }
+    var payload = null;
+    try { payload = raw ? JSON.parse(raw) : null; } catch (e2) { payload = null; }
+    return { res: res, raw: raw, payload: payload };
+  }
+
+  function currentModel() {
+    var m = store.get(LS.model, MODELS[0].id);
+    for (var i = 0; i < MODELS.length; i++) {
+      if (MODELS[i].id === m) return m;
+    }
+    return MODELS[0].id;
+  }
+
+  async function callGemini(systemPrompt, userPrompt, opts) {
+    opts = opts || {};
+    if (!store.get(LS.key, '')) throw new Error('NO_KEY');
+    var model = opts.model || currentModel();
+
+    var first = await postGenerate(model, buildBody(model, systemPrompt, userPrompt, opts));
+    if (first.res.ok) return parseModelJson(first.raw);
+
+    // 400이면 파라미터를 최소한으로 줄여 한 번 더 시도한다(모델별 설정 차이 대비).
+    if (first.res.status === 400) {
+      var minimalBody = {
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        generationConfig: {
+          maxOutputTokens: 16384,
+          responseMimeType: 'application/json',
+          responseSchema: SCHEMA
+        }
+      };
+      await sleep(150);
+      var second = await postGenerate(model, minimalBody);
+      if (second.res.ok) return parseModelJson(second.raw);
+      throw formatApiError(second.res.status, second.payload, second.raw);
+    }
+
+    throw formatApiError(first.res.status, first.payload, first.raw);
+  }
+
+  function formatApiError(status, payload, raw) {
+    var msg = (payload && payload.error && payload.error.message) ? payload.error.message : String(raw || '').slice(0, 300);
+    var e = new Error('API ' + status + ': ' + msg);
+    e.status = status;
+    e.apiMessage = msg;
+    return e;
+  }
+
+  function parseModelJson(raw) {
+    var data;
+    try { data = JSON.parse(raw); } catch (e) { throw new Error('PARSE_RESPONSE'); }
+
+    if (data.promptFeedback && data.promptFeedback.blockReason) {
+      throw new Error('BLOCKED: ' + data.promptFeedback.blockReason);
+    }
+    var cand = (data.candidates && data.candidates[0]) || null;
+    if (!cand) throw new Error('EMPTY: 응답이 비어 있어요.');
+
+    var parts = (cand.content && cand.content.parts) || [];
+    var text = '';
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i] && typeof parts[i].text === 'string') text += parts[i].text;
+    }
+    if (!text.trim()) throw new Error('EMPTY: 응답이 비어 있어요.');
+
+    var obj = tryParseLoose(text);
+    if (!obj) {
+      if (cand.finishReason === 'MAX_TOKENS') throw new Error('TRUNCATED');
+      throw new Error('PARSE_RESPONSE');
+    }
+    if (!obj.reviews || !obj.reviews.length) throw new Error('PARSE_RESPONSE');
+    return obj;
+  }
+
+  function tryParseLoose(text) {
+    var t = String(text).trim();
+    t = t.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+    try { return JSON.parse(t); } catch (e) {}
+    var s = t.indexOf('{');
+    var e2 = t.lastIndexOf('}');
+    if (s !== -1 && e2 > s) {
+      try { return JSON.parse(t.slice(s, e2 + 1)); } catch (e3) {}
+    }
+    return null;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* UI: 플랫폼 / 평가                                                   */
+  /* ------------------------------------------------------------------ */
+  function renderPlatforms() {
+    var food = $('platformsFood');
+    var beauty = $('platformsBeauty');
+    food.innerHTML = '';
+    beauty.innerHTML = '';
+    PLATFORMS.forEach(function (p) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.textContent = p.name;
+      b.setAttribute('data-platform', p.id);
+      b.setAttribute('aria-pressed', state.selected.indexOf(p.id) !== -1 ? 'true' : 'false');
+      (p.group === 'food' ? food : beauty).appendChild(b);
+    });
+    updatePickCount();
+  }
+
+  function updatePickCount() {
+    $('pickCount').textContent = state.selected.length + '개 선택';
+  }
+
+  function togglePlatform(id) {
+    var i = state.selected.indexOf(id);
+    if (i === -1) state.selected.push(id);
+    else state.selected.splice(i, 1);
+    // 선택 순서는 PLATFORMS 순서로 정렬 유지
+    state.selected.sort(function (a, b) {
+      return PLATFORMS.findIndex(function (x) { return x.id === a; }) -
+             PLATFORMS.findIndex(function (x) { return x.id === b; });
+    });
+    var btns = document.querySelectorAll('.chip[data-platform]');
+    for (var k = 0; k < btns.length; k++) {
+      var on = state.selected.indexOf(btns[k].getAttribute('data-platform')) !== -1;
+      btns[k].setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+    updatePickCount();
+  }
+
+  function setVerdict(id) {
+    state.verdict = id;
+    var btns = document.querySelectorAll('.verdict');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].setAttribute('aria-pressed', btns[i].getAttribute('data-verdict') === id ? 'true' : 'false');
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* 토스트 / 상태                                                       */
+  /* ------------------------------------------------------------------ */
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2000);
+  }
+
+  function setStatus(html) {
+    $('statusArea').innerHTML = html;
+  }
+
+  function clearStatus() {
+    $('statusArea').innerHTML = '';
+  }
+
+  function startTicker() {
+    var msgs = ['메모 읽는 중', '플랫폼 톤 맞추는 중', '문장 다듬는 중', 'AI 티 지우는 중'];
+    var i = 0;
+    setStatus('<div class="status-line"><span class="spinner"></span><span id="statusText">' + msgs[0] + '…</span></div>');
+    state.ticker = setInterval(function () {
+      i = (i + 1) % msgs.length;
+      var n = $('statusText');
+      if (n) n.textContent = msgs[i] + '…';
+    }, 2600);
+  }
+
+  function stopTicker() {
+    if (state.ticker) { clearInterval(state.ticker); state.ticker = null; }
+  }
+
+  function showError(text) {
+    var html = '<div class="err">' + escapeHtml(text) + '</div>';
+    setStatus(html);
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* 생성                                                                */
+  /* ------------------------------------------------------------------ */
+  async function generate() {
+    if (state.busy) return;
+
+    if (!store.get(LS.key, '')) {
+      openSheet('settings');
+      toast('먼저 API 키를 넣어주세요');
+      return;
+    }
+    if (!state.selected.length) { toast('플랫폼을 하나 이상 골라주세요'); return; }
+
+    var name = $('nameInput').value.trim();
+    var memo = $('memoInput').value.trim();
+    var extra = $('extraInput').value.trim();
+
+    if (!name) { $('nameInput').focus(); toast('가게 이름이나 제품명을 적어주세요'); return; }
+    if (!state.verdict) { toast('솔직 평가를 골라주세요'); return; }
+    if (memo.length < 2) {
+      $('memoInput').focus();
+      toast('겪은 일을 한 줄이라도 적어주세요 (없으면 어디에나 붙는 말이 됨)');
+      return;
+    }
+
+    var data = {
+      name: name,
+      memo: memo,
+      extra: extra,
+      verdict: state.verdict,
+      platforms: state.selected.slice()
+    };
+
+    state.busy = true;
+    $('btnGenerate').disabled = true;
+    $('btnGenerate').textContent = '만드는 중…';
+    $('results').innerHTML = '';
+    startTicker();
+
+    try {
+      var out = await callGemini(buildSystemPrompt(data.platforms), buildUserPrompt(data));
+      var reviews = orderReviews(out.reviews, data.platforms);
+
+      state.result = {
+        id: 'g' + Date.now(),
+        ts: Date.now(),
+        name: data.name,
+        memo: data.memo,
+        extra: data.extra,
+        verdict: data.verdict,
+        platforms: data.platforms.slice(),
+        reviews: reviews,
+        model: currentModel()
+      };
+
+      stopTicker();
+      clearStatus();
+      renderResult(state.result);
+      saveHistory(state.result);
+      toast('완성 — 카드마다 복사하세요');
+
+      window.scrollTo({ top: $('results').offsetTop - 70, behavior: 'smooth' });
+    } catch (err) {
+      stopTicker();
+      showError(errorText(err));
+    } finally {
+      state.busy = false;
+      $('btnGenerate').disabled = false;
+      $('btnGenerate').textContent = '리뷰 만들기';
+    }
+  }
+
+  function errorText(err) {
+    var m = String(err && err.message ? err.message : err);
+    if (m === 'NO_KEY') return 'API 키가 없어요. 오른쪽 위 ⚙️ 설정에서 넣어주세요.';
+    if (m === 'PARSE_RESPONSE') return '응답을 읽지 못했어요. 한 번 더 눌러보고, 계속 그러면 플랫폼 수를 줄여보세요.';
+    if (m === 'TRUNCATED') return '답이 길어서 잘렸어요. 플랫폼을 2~3개로 줄여 다시 시도해 주세요.';
+    if (m.indexOf('BLOCKED') === 0) return '이 내용은 모델이 거부했어요. 표현을 조금 바꿔보세요.';
+
+    var st = err && err.status;
+    if (st === 400 && /API key|API_KEY/i.test(m)) return 'API 키가 올바르지 않아요. 설정에서 다시 확인해 주세요.';
+    if (st === 403) return '키 권한 문제예요. aistudio에서 키를 새로 만들고 다시 넣어보세요.';
+    if (st === 429) return '무료 사용량 한도를 넘었어요. 조금 뒤에 다시 시도해 주세요.';
+    if (st === 404) return '모델을 찾을 수 없어요. 설정에서 모델을 바꿔보세요.';
+    if (st === 503) return '구글이 잠시 붐비네요. 30초 뒤 다시 눌러주세요.';
+    if (st) return '요청 실패 (' + st + ')\n' + (err.apiMessage || m);
+    if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return '네트워크에 연결하지 못했어요. 인터넷을 확인해 주세요.';
+    return '문제가 생겼어요: ' + m;
+  }
+
+  function orderReviews(reviews, ids) {
+    var map = {};
+    (reviews || []).forEach(function (r) {
+      if (r && r.platform) map[String(r.platform).toLowerCase().trim()] = r;
+    });
+    var out = [];
+    ids.forEach(function (id) {
+      if (map[id]) { out.push(map[id]); delete map[id]; }
+    });
+    Object.keys(map).forEach(function (k) {
+      if (ids.indexOf(k) === -1 && out.length < ids.length) out.push(map[k]);
+    });
+    return out;
+  }
+
+  function timeLabel(ts) {
+    var d = new Date(ts);
+    var mm = d.getMonth() + 1;
+    var dd = d.getDate();
+    var hh = d.getHours();
+    var mi = d.getMinutes();
+    return mm + '.' + dd + ' ' + (hh < 10 ? '0' + hh : hh) + ':' + (mi < 10 ? '0' + mi : mi);
+  }
+
+  function renderResult(result) {
+    var box = $('results');
+    var html = '';
+    html += '<div class="result-head">' +
+      '<h3>' + escapeHtml(result.name) + '</h3>' +
+      '<span class="dim">' + escapeHtml(VERDICTS[result.verdict] || '') + ' · ' + timeLabel(result.ts) + '</span>' +
+      '</div>';
+
+    result.reviews.forEach(function (r, idx) {
+      html += '<article class="rcard" data-idx="' + idx + '">';
+      html += '<div class="rc-head"><span class="rc-name">' + escapeHtml(platformName(r.platform)) + '</span>';
+      if (r.rating) html += '<span class="rc-rating">★ ' + escapeHtml(r.rating) + '</span>';
+      html += '</div>';
+      if (r.headline) html += '<p class="rc-headline">' + escapeHtml(r.headline) + '</p>';
+      html += '<p class="rc-body">' + escapeHtml(r.body || '') + '</p>';
+      if (r.tags) {
+        html += '<div class="rc-tags">';
+        String(r.tags).split(',').forEach(function (t) {
+          var v = t.trim().replace(/^#/, '');
+          if (v) html += '<span class="tag">#' + escapeHtml(v) + '</span>';
+        });
+        html += '</div>';
+      }
+      if (r.tips) html += '<p class="rc-tip"><b>올릴 때</b> ' + escapeHtml(r.tips) + '</p>';
+      html += '<div class="rc-actions">';
+      html += '<button class="primary" data-act="copy" data-idx="' + idx + '">복사</button>';
+      if (r.headline) html += '<button data-act="copy-head" data-idx="' + idx + '">한줄평만</button>';
+      html += '<button data-act="rewrite" data-idx="' + idx + '">다시 쓰기</button>';
+      html += '</div></article>';
+    });
+
+    box.innerHTML = html;
+  }
+
+  /* 복사 */
+  function copyText(text) {
+    return new Promise(function (resolve) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { resolve(true); }, function () { resolve(fallbackCopy(text)); });
+      } else {
+        resolve(fallbackCopy(text));
+      }
+    });
+  }
+
+  function fallbackCopy(text) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch (e) { return false; }
+  }
+
+  async function handleResultClick(ev) {
+    var btn = ev.target.closest ? ev.target.closest('button[data-act]') : null;
+    if (!btn) return;
+    var act = btn.getAttribute('data-act');
+    var idx = parseInt(btn.getAttribute('data-idx'), 10);
+    if (!state.result || !state.result.reviews[idx]) return;
+    var rev = state.result.reviews[idx];
+
+    if (act === 'copy') {
+      var ok = await copyText(rev.body || '');
+      toast(ok ? '복사됐어요' : '복사 실패 — 길게 눌러 직접 복사해 주세요');
+      return;
+    }
+    if (act === 'copy-head') {
+      var ok2 = await copyText(rev.headline || '');
+      toast(ok2 ? '한줄평 복사됐어요' : '복사 실패');
+      return;
+    }
+    if (act === 'rewrite') {
+      rewrite(btn, idx, rev);
+    }
+  }
+
+  async function rewrite(btn, idx, rev) {
+    if (state.busy) { toast('지금 만드는 중이에요'); return; }
+    var platform = rev.platform;
+    var r = state.result;
+    if (!r) return;
+
+    state.busy = true;
+    var old = btn.textContent;
+    btn.textContent = '쓰는 중…';
+    btn.disabled = true;
+
+    var data = { name: r.name, memo: r.memo, extra: r.extra, verdict: r.verdict, platforms: [platform] };
+    var userPrompt = buildUserPrompt(data) +
+      '\n\n[이전 결과]\n' + String(rev.body || '') +
+      '\n\n위와 같은 사실·평가를 유지하되, 문장 구성과 표현을 완전히 다르게 다시 써줘. 같은 문장 재사용 금지.';
+
+    try {
+      var out = await callGemini(buildSystemPrompt([platform]), userPrompt, { thinkingLevel: 'low' });
+      var fresh = orderReviews(out.reviews, [platform])[0];
+      if (!fresh) throw new Error('PARSE_RESPONSE');
+      r.reviews[idx] = fresh;
+      renderResult(r);
+      saveHistory(r, true);
+      toast(platformName(platform) + ' 다시 썼어요');
+    } catch (err) {
+      toast('다시 쓰기 실패');
+      showError(errorText(err));
+      btn.textContent = old;
+      btn.disabled = false;
+    } finally {
+      state.busy = false;
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* 내역                                                                */
+  /* ------------------------------------------------------------------ */
+  function loadHistory() {
+    var h = store.get(LS.history, []);
+    return Object.prototype.toString.call(h) === '[object Array]' ? h : [];
+  }
+
+  function saveHistory(entry, replace) {
+    var h = loadHistory();
+    if (replace) {
+      for (var i = 0; i < h.length; i++) {
+        if (h[i].id === entry.id) { h[i] = entry; store.set(LS.history, h); return; }
+      }
+    }
+    h = h.filter(function (x) { return x.id !== entry.id; });
+    h.unshift(entry);
+    if (h.length > 100) h = h.slice(0, 100);
+    store.set(LS.history, h);
+  }
+
+  function renderHistory() {
+    var h = loadHistory();
+    var box = $('historyList');
+    if (!h.length) {
+      box.innerHTML = '<div class="empty">아직 만든 리뷰가 없어요.<br>첫 리뷰를 만들어보세요.</div>';
+      return;
+    }
+    var html = '';
+    h.forEach(function (item) {
+      html += '<div class="row" data-hid="' + escapeHtml(item.id) + '">' +
+        '<div class="row-main" data-act="open">' +
+        '<div class="row-title">' + escapeHtml(item.name) + '</div>' +
+        '<div class="row-sub">' + timeLabel(item.ts) + ' · ' +
+        escapeHtml((item.platforms || []).map(platformName).join(' / ')) + '</div>' +
+        '</div>' +
+        '<button class="row-del" data-act="del" aria-label="삭제">✕</button>' +
+        '</div>';
+    });
+    box.innerHTML = html;
+  }
+
+  function handleHistoryClick(ev) {
+    var row = ev.target.closest ? ev.target.closest('.row') : null;
+    if (!row) return;
+    var id = row.getAttribute('data-hid');
+    var actEl = ev.target.closest('button[data-act="del"]') ? 'del' : 'open';
+
+    if (actEl === 'del') {
+      var h = loadHistory().filter(function (x) { return x.id !== id; });
+      store.set(LS.history, h);
+      renderHistory();
+      toast('지웠어요');
+      return;
+    }
+    var item = null;
+    var all = loadHistory();
+    for (var i = 0; i < all.length; i++) if (all[i].id === id) item = all[i];
+    if (!item) return;
+    state.result = item;
+    renderResult(item);
+    closeSheets();
+    window.scrollTo({ top: $('results').offsetTop - 70, behavior: 'smooth' });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* 시트                                                                */
+  /* ------------------------------------------------------------------ */
+  function openSheet(name) {
+    closeSheets();
+    var sheet = $(name === 'settings' ? 'sheetSettings' : 'sheetHistory');
+    sheet.classList.add('open');
+    sheet.setAttribute('aria-hidden', 'false');
+    $('backdrop').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (name === 'settings') fillSettings();
+    if (name === 'history') renderHistory();
+  }
+
+  function closeSheets() {
+    $('sheetSettings').classList.remove('open');
+    $('sheetHistory').classList.remove('open');
+    $('sheetSettings').setAttribute('aria-hidden', 'true');
+    $('sheetHistory').setAttribute('aria-hidden', 'true');
+    $('backdrop').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function fillSettings() {
+    $('keyInput').value = store.get(LS.key, '');
+    $('keyInput').type = 'password';
+    $('keyEye').textContent = '보기';
+
+    var sel = $('modelSelect');
+    if (!sel.options.length) {
+      MODELS.forEach(function (m) {
+        var o = document.createElement('option');
+        o.value = m.id;
+        o.textContent = m.label;
+        sel.appendChild(o);
+      });
+    }
+    sel.value = currentModel();
+
+    var p = store.get(LS.profile, DEFAULT_PROFILE) || {};
+    $('pfHeight').value = p.height || '';
+    $('pfWeight').value = p.weight || '';
+    $('pfTop').value = p.top || '';
+    $('pfBottom').value = p.bottom || '';
+  }
+
+  function saveSettings() {
+    var key = $('keyInput').value.trim();
+    if (key) store.set(LS.key, key);
+    else store.del(LS.key);
+
+    store.set(LS.model, $('modelSelect').value);
+    store.set(LS.profile, {
+      height: $('pfHeight').value.trim(),
+      weight: $('pfWeight').value.trim(),
+      top: $('pfTop').value.trim(),
+      bottom: $('pfBottom').value.trim()
+    });
+
+    closeSheets();
+    renderBanner();
+    toast(key ? '저장했어요' : '저장했어요 (키 없음)');
+  }
+
+  function renderBanner() {
+    var box = $('setupBanner');
+    if (store.get(LS.key, '')) {
+      if (!store.get(LS.seen, false)) {
+        store.set(LS.seen, true);
+      }
+      box.innerHTML = '';
+      return;
+    }
+    box.innerHTML = '<div class="card" style="margin-top:12px;border-color:var(--accent)">' +
+      '<div class="card-head" style="margin-bottom:6px"><h2>먼저 API 키 하나만 넣어주세요</h2></div>' +
+      '<p class="hint">Gemini API 키는 무료예요. <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> → 구글 로그인 → <b>API 키 만들기</b> → 복사.</p>' +
+      '<button class="btn-primary" id="bannerKeyBtn" style="margin-top:12px">키 넣으러 가기</button>' +
+      '</div>';
+    var b = $('bannerKeyBtn');
+    if (b) b.addEventListener('click', function () { openSheet('settings'); });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* 초기화                                                              */
+  /* ------------------------------------------------------------------ */
+  function init() {
+    renderPlatforms();
+    renderBanner();
+    fillSettings();
+
+    $('platformsFood').addEventListener('click', function (e) {
+      var b = e.target.closest('.chip[data-platform]');
+      if (b) togglePlatform(b.getAttribute('data-platform'));
+    });
+    $('platformsBeauty').addEventListener('click', function (e) {
+      var b = e.target.closest('.chip[data-platform]');
+      if (b) togglePlatform(b.getAttribute('data-platform'));
+    });
+
+    $('verdicts').addEventListener('click', function (e) {
+      var b = e.target.closest('.verdict');
+      if (b) setVerdict(b.getAttribute('data-verdict'));
+    });
+
+    $('btnGenerate').addEventListener('click', generate);
+    $('results').addEventListener('click', handleResultClick);
+
+    $('btnSettings').addEventListener('click', function () { openSheet('settings'); });
+    $('btnHistory').addEventListener('click', function () { openSheet('history'); });
+    $('btnCloseSettings').addEventListener('click', closeSheets);
+    $('btnCloseHistory').addEventListener('click', closeSheets);
+    $('backdrop').addEventListener('click', closeSheets);
+    $('btnSaveSettings').addEventListener('click', saveSettings);
+
+    $('keyEye').addEventListener('click', function () {
+      var i = $('keyInput');
+      if (i.type === 'password') { i.type = 'text'; $('keyEye').textContent = '숨김'; }
+      else { i.type = 'password'; $('keyEye').textContent = '보기'; }
+    });
+
+    $('historyList').addEventListener('click', handleHistoryClick);
+    $('btnClearHistory').addEventListener('click', function () {
+      if (!loadHistory().length) { toast('내역이 없어요'); return; }
+      if (window.confirm('작성 내역을 모두 지울까요?')) {
+        store.del(LS.history);
+        renderHistory();
+        toast('모두 지웠어요');
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeSheets();
+    });
+
+    // PWA 설치 프롬프트 (안드로이드 크롬)
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      state.installPrompt = e;
+      var b = $('btnInstall');
+      if (b) b.style.display = 'block';
+    });
+    $('btnInstall').addEventListener('click', function () {
+      if (!state.installPrompt) { toast('크롬 메뉴 ⋮ → 홈 화면에 추가를 눌러주세요'); return; }
+      state.installPrompt.prompt();
+      state.installPrompt = null;
+      $('btnInstall').style.display = 'none';
+    });
+
+    // 서비스 워커
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
