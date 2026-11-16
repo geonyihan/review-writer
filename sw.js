@@ -1,5 +1,8 @@
-/* 리뷰 라이터 서비스 워커: 앱 셸만 캐시, API 요청은 그대로 네트워크로 */
-var CACHE = 'review-writer-v1';
+/* 리뷰 라이터 서비스 워커
+   - 페이지 이동(navigation): 네트워크 우선 → 실패하면 캐시 (항상 최신 앱을 보여주기 위해)
+   - 그 밖의 정적 파일: 캐시 먼저 → 뒤에서 갱신 (stale-while-revalidate)
+   - Gemini API 등 외부 요청은 손대지 않음 */
+var CACHE = 'review-writer-v2';
 var ASSETS = ['./', './index.html', './manifest.json', './icon.svg', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function (event) {
@@ -32,18 +35,33 @@ self.addEventListener('fetch', function (event) {
   try { url = new URL(req.url); } catch (e) { return; }
   if (url.origin !== self.location.origin) return;
 
-  event.respondWith(
-    caches.match(req).then(function (hit) {
-      if (hit) return hit;
-      return fetch(req).then(function (res) {
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req).then(function (res) {
         var copy = res.clone();
         caches.open(CACHE).then(function (cache) {
           if (res.ok) cache.put(req, copy);
         });
         return res;
       }).catch(function () {
-        return caches.match('./index.html');
-      });
+        return caches.match(req).then(function (hit) {
+          return hit || caches.match('./index.html');
+        });
+      })
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(req).then(function (hit) {
+      var network = fetch(req).then(function (res) {
+        if (res && res.ok) {
+          var copy = res.clone();
+          caches.open(CACHE).then(function (cache) { cache.put(req, copy); });
+        }
+        return res;
+      }).catch(function () { return hit; });
+      return hit || network;
     })
   );
 });
