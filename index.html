@@ -245,10 +245,10 @@ details.more summary:before{content:"+ ";font-weight:800}
     <div class="field">
       <label>내 스펙 (무신사 사이즈감에 반영)</label>
       <div class="kv">
-        <div class="field"><label for="pfHeight">키 (cm)</label><input type="text" id="pfHeight" placeholder="174" inputmode="numeric"></div>
-        <div class="field"><label for="pfWeight">몸무게 (kg)</label><input type="text" id="pfWeight" placeholder="90" inputmode="numeric"></div>
-        <div class="field"><label for="pfTop">평소 상의</label><input type="text" id="pfTop" placeholder="XL~2XL"></div>
-        <div class="field"><label for="pfBottom">평소 하의</label><input type="text" id="pfBottom" placeholder="34~36"></div>
+        <div class="field"><label for="pfHeight">키 (cm)</label><input type="text" id="pfHeight" placeholder="예: 170" inputmode="numeric"></div>
+        <div class="field"><label for="pfWeight">몸무게 (kg)</label><input type="text" id="pfWeight" placeholder="예: 65" inputmode="numeric"></div>
+        <div class="field"><label for="pfTop">평소 상의</label><input type="text" id="pfTop" placeholder="예: M"></div>
+        <div class="field"><label for="pfBottom">평소 하의</label><input type="text" id="pfBottom" placeholder="예: 30"></div>
       </div>
     </div>
 
@@ -292,8 +292,9 @@ details.more summary:before{content:"+ ";font-weight:800}
     seen: 'rw.seen'
   };
 
-  // 개인 스펙 기본값: 설정 화면에서 언제든 바꿀 수 있음.
-  var DEFAULT_PROFILE = { height: '174', weight: '90', top: 'XL~2XL', bottom: '34~36' };
+  // 개인 스펙은 기본값을 넣지 않는다. 사용자가 설정 화면에서 직접 입력한 값만
+  // 이 기기 localStorage(rw.profile)에 남고, 코드·배포본에는 아무것도 남지 않는다.
+  var DEFAULT_PROFILE = { height: '', weight: '', top: '', bottom: '' };
 
   var MODELS = [
     { id: 'gemini-3.5-flash', label: 'gemini-3.5-flash (기본·추천)' },
@@ -361,9 +362,24 @@ details.more summary:before{content:"+ ";font-weight:800}
     '',
     '[말투]',
     '- 20대 후반 남성, 담백한 직구체. "~함", "~음", "~임", "~더라", "~네요", "~듯", "~같음"을 자연스럽게 섞는다.',
+    '- 이 말투는 진짜 쓴 글처럼 보이게 하는 재료지 문장마다 붙이는 공식이 아니다. 한 문단에 "~함/~음/~임"은 1~2번까지만 쓰고, 나머지는 평범한 서술("~했다", "~였다", "~좋았다")로 둔다.',
+    '- 짜증·불평·감정을 늘어놓지 않는다. 아쉬운 점은 사실과 이유 한두 줄로 눌러 쓴다. 욕설, 비꼬기, 인신공격 금지.',
+    '- ㅋㅋㅋ·ㅎㅎ·ㅠㅠ·;;·이모지·물결(~) 남발 금지. 통신체는 정말 자연스러울 때 한 번까지.',
     '- 문장은 짧게 끊고, 겪은 디테일(무엇을, 얼마에, 얼마나 기다려서, 언제)을 넣어 실제 사람이 쓴 느낌을 낸다.',
     '- 예의는 지키되 과하게 공손한 "~해주셨어요", "~하답니다", "도움이 되셨으면" 같은 말은 쓰지 않는다.',
     '- 리뷰 첫 문장에 결론이나 핵심 인상을 바로 놓는다.',
+    '',
+    '[구성]',
+    '- 형식은 깔끔하게 정돈한다: 결론(핵심 인상) → 좋았던 점 → 아쉬운 점(있으면) → 추천·비추/재방문·재구매 한 줄.',
+    '- 플랫폼이 정한 양식(4줄 구조, 글자수, 한줄평)을 먼저 지키고 그 틀 안을 위 말투로 채운다. 말투 때문에 양식이 무너지면 양식이 우선이다.',
+    '- 문단은 2~3개까지만, 줄바꿈으로 끊어 읽기 쉽게. 불릿·번호·머리말 남발 금지(플랫폼이 요구한 경우는 그대로).',
+    '- 옷·신발이면 평소 사이즈 대비 크고 작음과 어깨·기장·허리감을, 화장품이면 발림성·흡수·지속력 같은 사용감을 반드시 한 줄 넣는다.',
+    '',
+    '[톤 예시]',
+    '- 적당함: "주말 7시에 갔는데 웨이팅 20분. 국물은 진하고 고기도 넉넉했음. 다만 김치가 좀 시큼했고, 가격 생각하면 한 번 더 갈 만함."',
+    '- 너무 딱딱함(쓰지 말 것): "본 식당은 전반적으로 만족스러운 식사 경험을 제공합니다."',
+    '- 너무 가벼움(쓰지 말 것): "ㅋㅋㅋ 여기 찐맛집;; 웨이팅 개길지만 또 갈듯ㅋㅋ"',
+    '- 위 예시는 말투와 밀도만 참고한다. 문장을 그대로 쓰거나 메모에 없는 내용을 옮겨오지 않는다.',
     '',
     '[평가별 태도]',
     '- 좋았음(추천): 좋았던 이유를 구체적으로. 단점 하나 정도는 담백하게 짚어 광고처럼 보이지 않게.',
